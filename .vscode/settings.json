@@ -1,0 +1,11 @@
+{
+    "cmake.buildDirectory":  "${sourceDir}/build/${buildType}",
+    "cmake.sourceDirectory": "${workspaceFolder}",
+    "cmake.useCMakePresets": "always",
+    "cmake.configureOnOpen": true,
+    "clangd.path": "D:\\Tools.i4N\\msys64\\mingw64\\bin\\clangd.exe",
+    "clangd.arguments": [
+        "--compile-commands-dir=${workspaceFolder}/build/Debug",
+        "--query-driver=D:\\Tools.i4N\\Arm-None-Eabi-Gcc\\arm-gnu-toolchain-14.3.rel1-mingw-w64-x86_64-arm-none-eabi\\bin\\arm-none-eabi-*"
+    ]
+}

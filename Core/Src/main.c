@@ -18,7 +18,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "cppmain.h"
 #include "i2c.h"
 #include "spi.h"
 #include "tim.h"

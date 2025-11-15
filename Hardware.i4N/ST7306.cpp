@@ -1,5 +1,10 @@
 #include "ST7306.h"
+#include "stm32f4xx_hal_conf.h"
 #include "stm32f4xx_hal_gpio.h"
+#include "stm32f4xx_hal_spi.h"
+#include <cmath>
+#include <cstdint>
+
 
 ST7306::DEVICE_StatusType ST7306::Init_Sequence()
 {
@@ -40,11 +45,9 @@ ST7306::DEVICE_StatusType ST7306::Init_Sequence()
     SPI_Send(0x46,                 DATA);
     SPI_Send(0x46,                 DATA);
     SPI_Send(0x46,                 DATA);
-    SPI_Send(CMD::FRAMERATE_CTRL,  COMMAND);
-    SPI_Send(0x12,                 DATA); // sets frame rates: High Power Mode ~32Hz, Low Power Mode ~1Hz (affects update speed & power)
-    SPI_Send(CMD::OSC_SETTING,     COMMAND);
-    SPI_Send(0x80,                 DATA); // oscillator tuning: increases internal clock (affects max refresh rate)
-    SPI_Send(0xE9,                 DATA); // oscillator fine-tune parameter (stabilizes chosen frequency)
+
+    Init_SetFrameRate();
+
     SPI_Send(CMD::UPGEQH_CTRL,     COMMAND);
     SPI_Send(0xE5,                 DATA); // EQ (high-power) — affects waveform shaping for stable pixels at higher refresh rates
     SPI_Send(0xF6,                 DATA);
@@ -73,16 +76,8 @@ ST7306::DEVICE_StatusType ST7306::Init_Sequence()
     Delay_ms(120);
     SPI_Send(CMD::VSHL_SEL,        COMMAND);
     SPI_Send(0x00,                 DATA);
-    SPI_Send(CMD::MAD_CTRL,        COMMAND);
-    SPI_Send(0x48,                 DATA); // MADCTL: affects row/column order and data direction; effect: controls display rotation/mirroring
-    SPI_Send(CMD::DATAFMT_SEL,     COMMAND);
-    SPI_Send(0x32,                 DATA); // DATAFMT: selects pixel packing/bit-depth; effect: here configures 8-color / 24-bit packing used by driver
-    
-    SPI_Send(CMD::GAMMAMODE_SET,    COMMAND);
-    SPI_Send(0x00,                  DATA); 
 
-    SPI_Send(CMD::PANEL_SET,       COMMAND);
-    SPI_Send(0x0A,                 DATA); // panel setting: configures panel parameters (polarity, inversion, interlace)
+    Init_SetPixelAndRGB();
     
     SPI_Send(CMD::TEAREFFECT_ON,   COMMAND);
     SPI_Send(0x00,                 DATA);
@@ -96,36 +91,246 @@ ST7306::DEVICE_StatusType ST7306::Init_Sequence()
     SPI_Send(0xBB,                 COMMAND);
     SPI_Send(0x4F,                 DATA); // Enable Clear RAM to 0
     SPI_Send(CMD::DISPLAY_ON,      COMMAND);
-
+    Clear_FullScreen();
     return DEVICE_StatusType::DEVICE_SUCCESS;
 }
 
+/*****************************************************************************************************************************/
 
-/* Quick test funcs     */
-ST7306::DEVICE_StatusType ST7306::Quick_Set_Window()
+ST7306::DEVICE_StatusType ST7306::Clear_FullScreen()
+{
+    
+    memset(FULL_SCREEN_BUFFER,0x00, sizeof(FULL_SCREEN_BUFFER));
+    Update_FullScreen();
+    return DEVICE_StatusType::DEVICE_SUCCESS;
+}
+
+ST7306::DEVICE_StatusType ST7306::Run_Refresh_Test()
+{
+    byte pattern[8] = {0b00000000,0b00100100,
+                       0b01001000,0b01101100,
+                       0b10010000,0b10110100,
+                       0b11011000,0b11111100};
+    static byte index = 0;
+    if(index == 8)index = 0;
+    memset(FULL_SCREEN_BUFFER,pattern[index++],sizeof(FULL_SCREEN_BUFFER));
+    Update_FullScreen();
+    return DEVICE_StatusType::DEVICE_SUCCESS;
+}
+
+ST7306::DEVICE_StatusType ST7306::Update_FullScreen()
 {
     using enum SPI_DataType;
+    SPI_Send(CMD::COL_ADDR,COMMAND);
+    SPI_Send(INFO::XS,       DATA); // XS
+    SPI_Send(INFO::XE,       DATA); // XE
+    SPI_Send(CMD::ROW_ADDR,COMMAND);
+    SPI_Send(INFO::YS,       DATA); // YS
+    SPI_Send(INFO::YE,       DATA); // YE
+    SPI_Send(CMD::MEM_WRITE,COMMAND);
+    SPI_SendCore(reinterpret_cast<byte*>(FULL_SCREEN_BUFFER),DATA,sizeof(FULL_SCREEN_BUFFER)); // limited due to multi dimension
+    return DEVICE_StatusType::DEVICE_SUCCESS;
+}
+
+ST7306::DEVICE_StatusType ST7306::Fill_Screen(byte color)
+{
+    memset(FULL_SCREEN_BUFFER,color,sizeof(FULL_SCREEN_BUFFER));
+    Update_FullScreen();
+    return DEVICE_StatusType::DEVICE_SUCCESS;
+}
+
+/* FUNCTIONS BELOW ARE ONLY FOR TESTMENT USAGES */
+
+ST7306::DEVICE_StatusType ST7306::Quick_Test(byte xs, byte xe, byte ys, byte ye, byte color)
+{
+    using enum SPI_DataType;
+
+    /* address windows is always 8bit byte */
+    assert_param(xs>0x00);
+    assert_param(xe>xs && xe<=INFO::XE);
+    assert_param(ys>=0x00);
+    assert_param(ye>ys && ye<=INFO::YE);
 
     SPI_Send(CMD::COL_ADDR,COMMAND);
-    SPI_Send(0x04,       DATA); // XS
-    SPI_Send(0x38,       DATA); // XE
+    SPI_Send(xs,       DATA); // XS
+    SPI_Send(xe,       DATA); // XE
     SPI_Send(CMD::ROW_ADDR,COMMAND);
-    SPI_Send(0x00,       DATA); // YS
-    SPI_Send(0xEF,       DATA); // YE
+    SPI_Send(ys,       DATA); // YS
+    SPI_Send(ye,       DATA); // YE
     SPI_Send(CMD::MEM_WRITE,COMMAND);
-    return DEVICE_StatusType::DEVICE_SUCCESS;
-} 
 
-ST7306::DEVICE_StatusType ST7306::Quick_Test()
-{
-    static uint8_t flip = 0;
-    flip = !flip;
-    using enum SPI_DataType;
-    //Quick_Set_Window();
-    for (unsigned int i = 0; i < (480*106); i++)
-    {
-        SPI_Send((flip ? 0xFF : 0x00), DATA);
-    }
+    uint16_t byte_horizontal = (xe-xs+1)*12/3/2;
+    // xe-xs+1: horizontal ram units
+    // horizontal sub pixels = ram units * 12
+    // honrizontal pixels = sub pixels / 3
+    // honrizontal bytes = horizontal pixels / 2
+    // if xs=xe, val = 2
+    
+    uint16_t byte_vertical   = (ye-ys+1)*2;
+    // (ye-ys+1): vertical ram units
+    // vertical bytes = vertical ram units * 2
+    // honrizontal bytes = vertical pixels
+    // if ys=ye, val = 2
+
+    uint32_t area = (byte_horizontal*byte_vertical);
+    // if xs=xe and ys=ye, area = 4
+    uint8_t buf[INFO::FULL_SCREEN_BYTE_SIZE];
+    memset(buf,color,area);
+    SPI_Send(buf,DATA,4);
+    
     return DEVICE_StatusType::DEVICE_SUCCESS;
 }
+
+ST7306::DEVICE_StatusType ST7306::Draw_Min_Ram_Unit(byte x, byte y, byte color)
+{
+    assert_param(x>INFO::XS&&x<INFO::XE);
+    assert_param(y>INFO::YS&&y<INFO::YE);
+    using enum SPI_DataType;
+    SPI_Send(CMD::COL_ADDR,COMMAND);
+    SPI_Send(x,       DATA); // XS
+    SPI_Send(x,       DATA); // XE
+    SPI_Send(CMD::ROW_ADDR,COMMAND);
+    SPI_Send(y,       DATA); // YS
+    SPI_Send(y,       DATA); // YE
+    SPI_Send(CMD::MEM_WRITE,COMMAND);
+    uint8_t buf[4] = {color,color,color,color}; // 4 byte in min
+    SPI_Send(buf,DATA,4);  
+    return DEVICE_StatusType::DEVICE_SUCCESS;
+}
+
+ST7306::DEVICE_StatusType ST7306::Draw_Min_Ram_Unit_free(byte x, byte y,
+                                                         byte color1, 
+                                                         byte color2,
+                                                         byte color3, 
+                                                         byte color4)
+{
+    
+    using enum SPI_DataType;
+    SPI_Send(CMD::COL_ADDR,COMMAND);
+    SPI_Send(x,       DATA); // XS
+    SPI_Send(x,       DATA); // XE
+    SPI_Send(CMD::ROW_ADDR,COMMAND);
+    SPI_Send(y,       DATA); // YS
+    SPI_Send(y,       DATA); // YE
+    SPI_Send(CMD::MEM_WRITE,COMMAND);
+    uint8_t buf[4] = {color1, color2, color3, color4};
+    SPI_Send(buf,DATA,4);
+    return DEVICE_StatusType::DEVICE_SUCCESS;
+}
+
+ST7306::DEVICE_StatusType ST7306::Draw_Min_Square_block(byte x, byte y, byte color)
+{
+    /* Draw a 4*4px block */
+    /* This block is composed of 2 ram units,one in the upper and one in the lower */
+    /* i.e the horizontal remains the same while the vertical doubles              */
+    /* this block does not affects any other blocks or pixels */
+    /* since it contains 2 full ram units */
+    /* however by doing so the resolution (if used the block as pixels) will be downsized to 52*120 */
+    /* which is 4 times smaller than 210*480 */
+
+    if(x>52)x=52;
+    if(y>120)y=120;
+    byte x_address = x+4; // start from 0x04
+    byte y_address = (y==0)?0:y*2;
+    assert_param(x_address>INFO::XS&&x_address<INFO::XE);
+    assert_param(y_address>INFO::YS&&y_address<INFO::YE);
+    using enum SPI_DataType;
+    SPI_Send(CMD::COL_ADDR,COMMAND);
+    SPI_Send(x_address,       DATA); // XS
+    SPI_Send(x_address,       DATA); // XE
+    SPI_Send(CMD::ROW_ADDR,COMMAND);
+    SPI_Send(y_address,       DATA); // YS
+    SPI_Send(y_address+1,       DATA); // YE
+    SPI_Send(CMD::MEM_WRITE,COMMAND);
+    uint8_t buf[8] = {color,color,color,color,
+                      color,color,color,color}; // 8 byte in min square block
+    SPI_Send(buf,DATA,8);
+    return DEVICE_StatusType::DEVICE_SUCCESS;
+}
+
+ST7306::DEVICE_StatusType ST7306::Draw_Subpixel_bonded(byte x,byte y, byte color)
+{
+    assert_param(x>INFO::XS&&x<INFO::XE);
+    assert_param(y>INFO::YS&&y<INFO::YE);
+    using enum SPI_DataType;
+    SPI_Send(CMD::COL_ADDR,COMMAND);
+    SPI_Send(x,       DATA); // XS
+    SPI_Send(x,       DATA); // XE
+    SPI_Send(CMD::ROW_ADDR,COMMAND);
+    SPI_Send(y,       DATA); // YS
+    SPI_Send(y,       DATA); // YE
+    SPI_Send(CMD::MEM_WRITE,COMMAND);
+    color = color & 0xE0; // only high 3 bits valid
+    uint8_t buf[4] = {color,0x00,0x00,0x00}; // 4 byte in min
+    SPI_Send(buf,DATA,4);  
+    return DEVICE_StatusType::DEVICE_SUCCESS;
+}
+
+/***********************************************************************/
+
+ST7306::DEVICE_StatusType ST7306::Draw_Pixel(uint16_t x, uint16_t y,COLOR color)
+{
+    
+    // visual
+    // x: hardware y*2   = 480 in total
+    // y: hardware x*4-2 = 210 in total
+
+    // address window
+    // hardware x: 4 - 56,  53  in total, for index, 0-52
+    // hardware y: 0 - 239, 240 in total
+
+    //assert_param(x>0 && x<=INFO::HEIGHT && y>0 && y<=INFO::WIDTH );
+
+    /************************************************/
+
+    byte bit_group = (x%2==0)?2:1;
+    // if x is even, belongs to the 2nd bit group
+    // if x is odd,  belongs to the 1st bit group
+    
+    /************************************************/
+    
+    x -=1,y-=1; // convert to 0 based index
+
+    /************************************************/
+    
+    byte hardware_y_address = (x%2==0)?(x/2):(x-1)/2;
+    // 1-480 --> 0 - 479
+    // result: 0-1:0, 2-3:1, 4-5:2,... 478-479:239
+    // --> 0 - 239 for hardware
+
+    /************************************************/
+
+    byte byte_offset = (y%4);                
+    
+    // 1-210 --> 0 - 209
+    // result: 0-0,1-1,2-2,3-3,4-0,5-1....208-0,209-1
+
+    byte begin = y - (byte_offset);           
+    
+    // 1-210 --> 0 - 209
+    // result: 0-0,1-0,2-0,3-0, 4-4,5-4...208-208,209-208
+
+    byte hardware_x_address = (begin/4);
+    // 1-210 --> 0-209
+    // result: 0-4,1-3,2-4,3-4, 4-5,5-5...208-56,209-56
+    // --> 4 - 56 for hardware
+    // however index is 0 - 52, so remain (begin/4)
+    
+    byte pixel_blank = (0b111) << ((bit_group==1)?5:2);
+    pixel_blank = ~pixel_blank;
+    byte pixel = static_cast<byte>(color) << ((bit_group==1)?5:2);
+    // if color = BLACK, bit group = 1,
+    // pixel = 0b111 << 5 = 0b11100000
+    // if bit group = 2,
+    // pixel = 0b111 << 2 = 0b00011100
+    FULL_SCREEN_BUFFER[hardware_y_address][hardware_x_address][byte_offset].full &= pixel_blank;
+    FULL_SCREEN_BUFFER[hardware_y_address][hardware_x_address][byte_offset].full |= pixel;
+
+    return DEVICE_StatusType::DEVICE_SUCCESS;
+}
+
+
+
+
+
 

@@ -47,16 +47,21 @@ file(GLOB SYSTEM
         "${CMAKE_CURRENT_SOURCE_DIR}/System.i4N/*.h"
         "${CMAKE_CURRENT_SOURCE_DIR}/System.i4N/*.cpp"
 )
-file(GLOB LVGL_SRC         
-        "${CMAKE_CURRENT_SOURCE_DIR}/LVGL/*.h"     # lvgl.h / lv_version.h
-        "${CMAKE_CURRENT_SOURCE_DIR}/LVGL/src/*.c" # source files
-        "${CMAKE_CURRENT_SOURCE_DIR}/LVGL/src/*.h"
-)
-# Create an executable object type
+# file(GLOB_RECURSE LVGL_SRC CONFIGURE_DEPENDS
+#     "${CMAKE_CURRENT_SOURCE_DIR}/LVGL/*.c"        # nothing here normmally
+#     "${CMAKE_CURRENT_SOURCE_DIR}/LVGL/*.h"        # lvgl.h / lv_conf.h / lv_version.h
+#     "${CMAKE_CURRENT_SOURCE_DIR}/LVGL/*.cpp"      # nothing here normally
+
+#     "${CMAKE_CURRENT_SOURCE_DIR}/LVGL/**/*.c"     # lots of files here
+#     "${CMAKE_CURRENT_SOURCE_DIR}/LVGL/**/*.h"
+#     "${CMAKE_CURRENT_SOURCE_DIR}/LVGL/**/*.cpp"
+
+# )
+
 add_executable(${CMAKE_PROJECT_NAME}
                ${HARDWARE}
                ${SYSTEM}
-               ${LVGL_SRC}
+            #    ${LVGL_SRC}
 )
 
 # Add STM32CubeMX generated sources
@@ -72,7 +77,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
         ${CMAKE_CURRENT_SOURCE_DIR}/Hardware.i4N
         ${CMAKE_CURRENT_SOURCE_DIR}/System.i4N
-        ${LVGL_SRC}
+        # ${LVGL_SRC}
 )
 
 # Add include paths
@@ -80,9 +85,10 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
         ${CMAKE_CURRENT_SOURCE_DIR}/Hardware.i4N
         ${CMAKE_CURRENT_SOURCE_DIR}/System.i4N
-        ${CMAKE_CURRENT_SOURCE_DIR}/LVGL
+        # ${CMAKE_CURRENT_SOURCE_DIR}/LVGL
+        # ${CMAKE_CURRENT_SOURCE_DIR}/LVGL/src
 )
-
+ 
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined symbols

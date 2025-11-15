@@ -256,7 +256,7 @@ protected:
 	// 3) Call HAL_SPI_Transmit to send the buffer.
 	// 4) Deassert CS (restore opposite level).
 	// 5) Check HAL status and return DEVICE_SUCCESS/FAILED, while emitting debug messages.
-	DEVICE_StatusType SPI_SendCore(const byte   *data, 
+	DEVICE_StatusType SPI_SendCore(byte   *data, 
 					   SPI_DataType type,
 					   uint16_t     length,                
 				       SPI_Polarity polarity = SPI_Polarity::ACTIVE_AT_LOW,

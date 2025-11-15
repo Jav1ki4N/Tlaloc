@@ -1,4 +1,5 @@
-
+#define LVGL_ENABLE 0
+#if LVGL_ENABLE
 #include "DEVICE.h"
 #include "lvgl.h"
 #include "src/display/lv_display.h"
@@ -60,9 +61,9 @@ class UI
      }
     */
 
-    UI_StatusType UI_Init(lv_display_flush_cb_t flush_cb,          // defined in the sub classes
-                          UI_BufferType        *buf1,              // also defined in the sub classes
-                          UI_BufferType        *buf2 = nullptr)    
+    UI_StatusType LVGL_Init(lv_display_flush_cb_t flush_cb,          // defined in the sub classes
+                            UI_BufferType        *buf1,              // also defined in the sub classes
+                            UI_BufferType        *buf2 = nullptr)    
     {
         assert_param(info.hor_res > 0  && info.ver_res > 0 && info.byte_per_pixel > 0);
 
@@ -97,4 +98,17 @@ class UI
         
         return UI_StatusType::DEVICE_SUCCESS;
     }
+
+    union PIXEL_RGB565_T
+    {
+        struct
+        {
+            /* separate RGB channel */
+            uint16_t red:   5;
+            uint16_t green: 6;
+            uint16_t blue:  5;
+        }channel;
+        uint16_t full;
+    }PIXEL_RGB565;
 };
+#endif

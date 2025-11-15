@@ -26,13 +26,14 @@ class ST7306 : public DEVICE//, public UI
         
          enum class COLOR : byte
         {
+            /* RGB ORDER, 0 vaild */
             BLACK   = 0b111,  //111
-            RED     = 0b110,    //110
-            GREEN   = 0b101,  //101
-            YELLOW  = 0b100, //100
-            BLUE    = 0b011,   //011
+            RED     = 0b011,    //110
+            GREEN   = 0b010,  //101
+            YELLOW  = 0b001, //100
+            BLUE    = 0b110,   //011
             MAGENTA = 0b010,//010
-            CYAN    = 0b001,   //001
+            CYAN    = 0b100,   //001
             WHITE   = 0b000   //000
         };
 

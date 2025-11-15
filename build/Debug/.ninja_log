@@ -1,6 +1,6 @@
 # ninja log v7
 85	186	7845875419512244	CMakeFiles/Tlaloc.dir/startup_stm32f411xe.s.obj	f37b7dabfa279cf
-5	283	7848455243780754	CMakeFiles/Tlaloc.dir/System.i4N/cppmain.cpp.obj	3c4ea7005d4b2679
+5	298	7849050269826171	CMakeFiles/Tlaloc.dir/System.i4N/cppmain.cpp.obj	3c4ea7005d4b2679
 71	197	7845875419332250	CMakeFiles/Tlaloc.dir/Core/Src/sysmem.c.obj	bb942b7edd6b819d
 51	416	7846327609028940	CMakeFiles/Tlaloc.dir/Core/Src/tim.c.obj	19fd9dcf7e1b24b
 22	417	7846327608708990	CMakeFiles/Tlaloc.dir/Core/Src/main.c.obj	937f515ff3e1f4cc
@@ -18,7 +18,7 @@
 78	261	7845875419402231	CMakeFiles/Tlaloc.dir/Core/Src/syscalls.c.obj	64c275c36fca4aec
 198	1135	7844855890835373	cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc_ex.c.obj	210ae024f8a2a1ff
 208	1137	7844855890938490	cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash.c.obj	a9ced1ccbdb31b84
-5	560	7848453879393270	CMakeFiles/Tlaloc.dir/Hardware.i4N/ST7306.cpp.obj	b843e33817d8a559
+7	5113	7849049719100102	CMakeFiles/Tlaloc.dir/Hardware.i4N/ST7306.cpp.obj	b843e33817d8a559
 567	1329	7844855894517654	cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash_ex.c.obj	e7a8327120ffd6fe
 12	544	7846327608609060	CMakeFiles/Tlaloc.dir/Hardware.i4N/uart_app.cpp.obj	ff884e924a2a10ce
 631	1403	7844855895157550	cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash_ramfunc.c.obj	ab01b1ced67df52
@@ -35,7 +35,7 @@
 965	1715	7844855898500177	cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.c.obj	2f10ce31ee2e84e5
 1017	1803	7844855899015612	cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c.obj	c920eea5a13196a
 984	1921	7844855898691586	cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.c.obj	78f6d4478a575fd
-284	521	7848455246563074	Tlaloc.elf	d4c91d2003072f1
+299	547	7849050272755508	Tlaloc.elf	d4c91d2003072f1
 23	108	7845868982753757	CMakeFiles/Tlaloc.dir/LVGL/lv_port_disp_template.c.obj	a5148adeb56761a8
 31	112	7845868982843730	CMakeFiles/Tlaloc.dir/LVGL/lv_port_indev_template.c.obj	bf6869ae2071c451
 35	146	7845868982883729	CMakeFiles/Tlaloc.dir/LVGL/lv_port_lcd_stm32_template.c.obj	84f3c21aa8b24654
@@ -305,6 +305,28 @@
 261	937	7845874699149089	CMakeFiles/Tlaloc.dir/LVGL/src/libs/barcode/code128.c.obj	9718d8059c5dfa37
 518	1069	7845874701710705	CMakeFiles/Tlaloc.dir/LVGL/src/libs/bmp/lv_bmp.c.obj	704092adddf56ba6
 789	1107	7845874704429280	CMakeFiles/Tlaloc.dir/LVGL/src/libs/freetype/lv_freetype_glyph.c.obj	497965abf9e9c3e6
-3	183	7848903882029575	build.ninja	d974c52eba47ef5a
-3	183	7848903881864350	D:/Project.i4N/STM32_Project/Tlaloc/build/Debug/cmake_install.cmake	d974c52eba47ef5a
-3	183	7848903881934331	D:/Project.i4N/STM32_Project/Tlaloc/build/Debug/cmake/stm32cubemx/cmake_install.cmake	d974c52eba47ef5a
+3	183	7849056024672104	build.ninja	d974c52eba47ef5a
+3	183	7849056024572113	D:/Project.i4N/STM32_Project/Tlaloc/build/Debug/cmake_install.cmake	d974c52eba47ef5a
+3	183	7849056024622093	D:/Project.i4N/STM32_Project/Tlaloc/build/Debug/cmake/stm32cubemx/cmake_install.cmake	d974c52eba47ef5a
+13	311	7849065623752754	CMakeFiles/Tlaloc.dir/System.i4N/cppmain.cpp.obj	3c4ea7005d4b2679
+5	593	7849065623672909	CMakeFiles/Tlaloc.dir/Hardware.i4N/ST7306.cpp.obj	b843e33817d8a559
+593	849	7849065629550216	Tlaloc.elf	d4c91d2003072f1
+6	558	7849067859079142	CMakeFiles/Tlaloc.dir/Hardware.i4N/ST7306.cpp.obj	b843e33817d8a559
+559	801	7849067864601574	Tlaloc.elf	d4c91d2003072f1
+5	556	7849067985016827	CMakeFiles/Tlaloc.dir/Hardware.i4N/ST7306.cpp.obj	b843e33817d8a559
+557	802	7849067990541881	Tlaloc.elf	d4c91d2003072f1
+5	564	7849070074939068	CMakeFiles/Tlaloc.dir/Hardware.i4N/ST7306.cpp.obj	b843e33817d8a559
+565	811	7849070080539354	Tlaloc.elf	d4c91d2003072f1
+13	316	7849078879929391	CMakeFiles/Tlaloc.dir/System.i4N/cppmain.cpp.obj	3c4ea7005d4b2679
+5	578	7849078879849648	CMakeFiles/Tlaloc.dir/Hardware.i4N/ST7306.cpp.obj	b843e33817d8a559
+579	851	7849078885588405	Tlaloc.elf	d4c91d2003072f1
+13	304	7849079281976779	CMakeFiles/Tlaloc.dir/System.i4N/cppmain.cpp.obj	3c4ea7005d4b2679
+5	574	7849079281891375	CMakeFiles/Tlaloc.dir/Hardware.i4N/ST7306.cpp.obj	b843e33817d8a559
+575	842	7849079287582531	Tlaloc.elf	d4c91d2003072f1
+12	301	7849080618607038	CMakeFiles/Tlaloc.dir/System.i4N/cppmain.cpp.obj	3c4ea7005d4b2679
+5	566	7849080618537051	CMakeFiles/Tlaloc.dir/Hardware.i4N/ST7306.cpp.obj	b843e33817d8a559
+566	821	7849080624149572	Tlaloc.elf	d4c91d2003072f1
+5	286	7849080846494526	CMakeFiles/Tlaloc.dir/System.i4N/cppmain.cpp.obj	3c4ea7005d4b2679
+287	524	7849080849301562	Tlaloc.elf	d4c91d2003072f1
+5	285	7849085317960166	CMakeFiles/Tlaloc.dir/System.i4N/cppmain.cpp.obj	3c4ea7005d4b2679
+286	526	7849085320759234	Tlaloc.elf	d4c91d2003072f1

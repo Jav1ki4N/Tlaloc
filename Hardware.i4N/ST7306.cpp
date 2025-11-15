@@ -98,70 +98,49 @@ ST7306::DEVICE_StatusType ST7306::Init_Sequence()
 /*****************************************************************************************************************************/
 
 
-ST7306::DEVICE_StatusType ST7306::Draw_Pixel(uint16_t x, uint16_t y,COLOR color)
+ST7306::DEVICE_StatusType ST7306::Draw_Pixel(uint16_t x, uint16_t y,COLOR color) // DONE 
 {
+    /* MAD:0x00, 8color, 4write for 24bit, mono for grayscale */
+    /* one dot inversion, frame interval & one line interlace */
+    assert_param(x>=0 && x<=INFO::HEIGHT && y>=0 && y<=INFO::WIDTH);
+
+    byte bit_group   = (x%2)?2:1;                                         // x--> even (group1) | odd (group2) | dummy                                                   
+    byte row_addr    = (x/2);                                             // which row of hardware
+    byte byte_offset = (y%4);                                             // which byte in a ram unit                
+    byte col_addr    = (y/4);                                             // which ram unit in a row
+    byte pixel_blank = (bit_group == 1)?0b00011111:0b11100011;            // mask bit to clear the pixel 
+    byte pixel       = static_cast<byte>(color) << ((bit_group==1)?5:2 ); // real color info
     
-    // visual
-    // x: hardware y*2   = 480 in total
-    // y: hardware x*4-2 = 210 in total
-
-    // address window
-    // hardware x: 4 - 56,  53  in total, for index, 0-52
-    // hardware y: 0 - 239, 240 in total
-
-    assert_param(x>0 && x<=INFO::HEIGHT+1 && y>0 && y<=INFO::WIDTH+1 );
-
-    byte bit_group = (x%2==0)?2:1;                                 // x--> odd (group1) | even (group2) | dummy
-    x -=1,y-=1;                                                    // convert to 0 based index
-    
-    byte hardware_y_address = (x%2==0)?(x/2):(x-1)/2;              // which row of hardware
-    // result: 0-1:0, 2-3:1, 4-5:2,... 478-479:239
-
-    byte byte_offset = (y%4);                                      // which byte in a ram unit                
-    // result: 0-0,1-1,2-2,3-3,4-0,5-1....208-0,209-1
-
-    byte begin = y - (byte_offset);                                // the first byte of the ram unit       
-    // result: 0-0,1-0,2-0,3-0, 4-4,5-4...208-208,209-208
-
-    byte hardware_x_address = (begin/4);                           // which ram unit in a row
-    // result should be 0-4,1-3,2-4,3-4, 4-5,5-5...208-56,209-56
-    // however index is 0 - 52, so remain (begin/4)
-    
-    byte pixel_blank = (0b111) << ((bit_group==1)?5:2);
-    pixel_blank = ~pixel_blank;                                    // mask bit to clear the pixel 
-
-    byte pixel = static_cast<byte>(color) << ((bit_group==1)?5:2); // real info to set
-    // color info shifted to the correct group position
-    FULL_SCREEN_BUFFER[hardware_y_address][hardware_x_address][byte_offset].full &= pixel_blank;
-    FULL_SCREEN_BUFFER[hardware_y_address][hardware_x_address][byte_offset].full |= pixel;
+    FULL_SCREEN_BUFFER[row_addr][col_addr][byte_offset].full &= pixel_blank;
+    FULL_SCREEN_BUFFER[row_addr][col_addr][byte_offset].full |= pixel;
 
     return DEVICE_StatusType::DEVICE_SUCCESS;
 }
 
 ST7306::DEVICE_StatusType ST7306::Clear_FullScreen()
 {
-    
     memset(FULL_SCREEN_BUFFER,0x00, sizeof(FULL_SCREEN_BUFFER));
     Update_FullScreen();
     return DEVICE_StatusType::DEVICE_SUCCESS;
 }
 
-ST7306::DEVICE_StatusType ST7306::Run_Refresh_Test()
-{
-    byte pattern[8] = {0b00000000,0b00100100,
-                       0b01001000,0b01101100,
-                       0b10010000,0b10110100,
-                       0b11011000,0b11111100};
-    static byte index = 0;
-    if(index == 8)index = 0;
-    memset(FULL_SCREEN_BUFFER,pattern[index++],sizeof(FULL_SCREEN_BUFFER));
-    Update_FullScreen();
-    return DEVICE_StatusType::DEVICE_SUCCESS;
-}
+// ST7306::DEVICE_StatusType ST7306::Run_Refresh_Test()
+// {
+//     byte pattern[8] = {0b00000000,0b00100100,
+//                        0b01001000,0b01101100,
+//                        0b10010000,0b10110100,
+//                        0b11011000,0b11111100};
+//     static byte index = 0;
+//     if(index == 8)index = 0;
+//     memset(FULL_SCREEN_BUFFER,pattern[index++],sizeof(FULL_SCREEN_BUFFER));
+//     Update_FullScreen();
+//     return DEVICE_StatusType::DEVICE_SUCCESS;
+// }
 
 ST7306::DEVICE_StatusType ST7306::Update_FullScreen()
 {
     using enum SPI_DataType;
+    /* address window: full screen */
     SPI_Send(CMD::COL_ADDR,COMMAND);
     SPI_Send(INFO::XS,       DATA); // XS
     SPI_Send(INFO::XE,       DATA); // XE
@@ -169,11 +148,11 @@ ST7306::DEVICE_StatusType ST7306::Update_FullScreen()
     SPI_Send(INFO::YS,       DATA); // YS
     SPI_Send(INFO::YE,       DATA); // YE
     SPI_Send(CMD::MEM_WRITE,COMMAND);
-    SPI_SendCore(reinterpret_cast<byte*>(FULL_SCREEN_BUFFER),DATA,sizeof(FULL_SCREEN_BUFFER)); // limited due to multi dimension
+    SPI_SendCore(reinterpret_cast<byte*>(FULL_SCREEN_BUFFER),DATA,sizeof(FULL_SCREEN_BUFFER)); 
     return DEVICE_StatusType::DEVICE_SUCCESS;
 }
 
-ST7306::DEVICE_StatusType ST7306::Fill_Screen(byte color)
+ST7306::DEVICE_StatusType ST7306::Fill_FullScreen(byte color)
 {
     memset(FULL_SCREEN_BUFFER,color,sizeof(FULL_SCREEN_BUFFER));
     Update_FullScreen();

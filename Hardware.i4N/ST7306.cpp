@@ -109,50 +109,29 @@ ST7306::DEVICE_StatusType ST7306::Draw_Pixel(uint16_t x, uint16_t y,COLOR color)
     // hardware x: 4 - 56,  53  in total, for index, 0-52
     // hardware y: 0 - 239, 240 in total
 
-    //assert_param(x>0 && x<=INFO::HEIGHT && y>0 && y<=INFO::WIDTH );
+    assert_param(x>0 && x<=INFO::HEIGHT+1 && y>0 && y<=INFO::WIDTH+1 );
 
-    /************************************************/
-
-    byte bit_group = (x%2==0)?2:1;
-    // if x is even, belongs to the 2nd bit group
-    // if x is odd,  belongs to the 1st bit group
+    byte bit_group = (x%2==0)?2:1;                                 // x--> odd (group1) | even (group2) | dummy
+    x -=1,y-=1;                                                    // convert to 0 based index
     
-    /************************************************/
-    
-    x -=1,y-=1; // convert to 0 based index
-
-    /************************************************/
-    
-    byte hardware_y_address = (x%2==0)?(x/2):(x-1)/2;
-    // 1-480 --> 0 - 479
+    byte hardware_y_address = (x%2==0)?(x/2):(x-1)/2;              // which row of hardware
     // result: 0-1:0, 2-3:1, 4-5:2,... 478-479:239
-    // --> 0 - 239 for hardware
 
-    /************************************************/
-
-    byte byte_offset = (y%4);                
-    
-    // 1-210 --> 0 - 209
+    byte byte_offset = (y%4);                                      // which byte in a ram unit                
     // result: 0-0,1-1,2-2,3-3,4-0,5-1....208-0,209-1
 
-    byte begin = y - (byte_offset);           
-    
-    // 1-210 --> 0 - 209
+    byte begin = y - (byte_offset);                                // the first byte of the ram unit       
     // result: 0-0,1-0,2-0,3-0, 4-4,5-4...208-208,209-208
 
-    byte hardware_x_address = (begin/4);
-    // 1-210 --> 0-209
-    // result: 0-4,1-3,2-4,3-4, 4-5,5-5...208-56,209-56
-    // --> 4 - 56 for hardware
+    byte hardware_x_address = (begin/4);                           // which ram unit in a row
+    // result should be 0-4,1-3,2-4,3-4, 4-5,5-5...208-56,209-56
     // however index is 0 - 52, so remain (begin/4)
     
     byte pixel_blank = (0b111) << ((bit_group==1)?5:2);
-    pixel_blank = ~pixel_blank;
-    byte pixel = static_cast<byte>(color) << ((bit_group==1)?5:2);
-    // if color = BLACK, bit group = 1,
-    // pixel = 0b111 << 5 = 0b11100000
-    // if bit group = 2,
-    // pixel = 0b111 << 2 = 0b00011100
+    pixel_blank = ~pixel_blank;                                    // mask bit to clear the pixel 
+
+    byte pixel = static_cast<byte>(color) << ((bit_group==1)?5:2); // real info to set
+    // color info shifted to the correct group position
     FULL_SCREEN_BUFFER[hardware_y_address][hardware_x_address][byte_offset].full &= pixel_blank;
     FULL_SCREEN_BUFFER[hardware_y_address][hardware_x_address][byte_offset].full |= pixel;
 

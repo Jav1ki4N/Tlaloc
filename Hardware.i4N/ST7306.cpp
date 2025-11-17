@@ -100,11 +100,8 @@ ST7306::DEVICE_StatusType ST7306::Init_Sequence()
 
 ST7306::DEVICE_StatusType ST7306::Draw_Pixel(uint16_t x, uint16_t y,COLOR color) // DONE 
 {
-<<<<<<< HEAD
     /* MAD:0x00, 8color, 4write for 24bit, mono for grayscale */
     /* one dot inversion, frame interval & one line interlace */
-=======
->>>>>>> 4a6ee5f52e2f3628bc91e567d344088debae3d45
     assert_param(x>=0 && x<=INFO::HEIGHT && y>=0 && y<=INFO::WIDTH);
 
     byte bit_group   = (x%2)?2:1;                                         // x--> even (group1) | odd (group2) | dummy                                                   

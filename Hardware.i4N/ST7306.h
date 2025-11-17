@@ -212,19 +212,11 @@ class ST7306 : public DEVICE//, public UI
         #define LVGL_ENABLE 0
         #if LVGL_ENABLE
 
+        /* static flush cb called by LVGL API */
         static void LVGL_Flush_Callback (lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);
+        /* flush logic layer */
         DEVICE_StatusType Flush_Callback(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);
         DEVICE_StatusType UI_Init();
-
-        typedef struct
-        {
-            uint8_t full;
-        }pixel_t;                                  // 1 byte
-
-        typedef struct
-        {
-            pixel_t buffer[INFO::WIDTH+2];
-        }buffer_t;                                 // 1 row, 2 extra bytes for alignment/padding
 
         LV_ATTRIBUTE_MEM_ALIGN                     // ensure proper alignment for DMA
         buffer_t frame_buffer1[INFO::BUFFER_SIZE]; // 1 row * (239) = half screen

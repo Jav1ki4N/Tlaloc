@@ -4,6 +4,7 @@
 #include "stm32f4xx_hal_spi.h"
 #include <cmath>
 #include <cstdint>
+#include <UI.h>
 
 
 ST7306::DEVICE_StatusType ST7306::Init_Sequence()

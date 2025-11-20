@@ -386,6 +386,7 @@ endif()
 # LVGL_SRC at CMakeLists.txt:50 (file)
 file(GLOB_RECURSE NEW_GLOB LIST_DIRECTORIES false "D:/Project.i4N/STM32_Project/Tlaloc/Middleware.i4N/LVGL/*.c")
 set(OLD_GLOB
+  "D:/Project.i4N/STM32_Project/Tlaloc/Middleware.i4N/LVGL/lv_port_disp_template.c"
   "D:/Project.i4N/STM32_Project/Tlaloc/Middleware.i4N/LVGL/src/core/lv_disp.c"
   "D:/Project.i4N/STM32_Project/Tlaloc/Middleware.i4N/LVGL/src/core/lv_event.c"
   "D:/Project.i4N/STM32_Project/Tlaloc/Middleware.i4N/LVGL/src/core/lv_group.c"
@@ -597,6 +598,7 @@ endif()
 file(GLOB_RECURSE NEW_GLOB LIST_DIRECTORIES false "D:/Project.i4N/STM32_Project/Tlaloc/Middleware.i4N/LVGL/*.h")
 set(OLD_GLOB
   "D:/Project.i4N/STM32_Project/Tlaloc/Middleware.i4N/LVGL/lv_conf.h"
+  "D:/Project.i4N/STM32_Project/Tlaloc/Middleware.i4N/LVGL/lv_port_disp_template.h"
   "D:/Project.i4N/STM32_Project/Tlaloc/Middleware.i4N/LVGL/lvgl.h"
   "D:/Project.i4N/STM32_Project/Tlaloc/Middleware.i4N/LVGL/src/core/lv_disp.h"
   "D:/Project.i4N/STM32_Project/Tlaloc/Middleware.i4N/LVGL/src/core/lv_event.h"

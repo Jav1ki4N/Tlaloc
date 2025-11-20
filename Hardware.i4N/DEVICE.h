@@ -71,6 +71,8 @@ protected:
 	};
 
 	using byte = uint8_t       ;
+	using word = uint16_t      ;
+	using flag = bool          ;
 	using pin  = uint16_t      ;
 	using port = GPIO_TypeDef *;
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "
+echo -e "\x1b[32m
       ::::::::::: :::     ::::    :::    
          :+:    :+:      :+:+:   :+:     
         +:+   +:+ +:+   :+:+:+  +:+      
@@ -11,10 +11,10 @@ echo "
 =====================================
 
 @2025 Project i4N
-"
+\x1b[0m"
 
 cmake --build build/Debug --
-echo "Build finished"
+echo -e "\x1b[32mBuild finished\x1b[0m"
 
 ELF=$(find build/Debug -name "*.elf" | head -n 1)
 if [ ! -f "$ELF" ]; then
@@ -22,6 +22,6 @@ if [ ! -f "$ELF" ]; then
     exit 1
 fi
 
-echo "Flashing ... "
+echo -e "\x1b[32mFlashing ... \x1b[0m"
 openocd -f openocd.cfg -c "program $ELF verify reset exit"
-echo "Flash finished"
+echo -e "\x1b[32mFlash finished\x1b[0m"

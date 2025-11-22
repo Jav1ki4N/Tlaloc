@@ -1,30 +1,27 @@
-
+#pragma once
 #include "DEVICE.h"
-#include "src/hal/lv_hal_disp.h"
 #include <cstddef>
-
+#include "src/core/lv_obj.h"
+#include "stm32f4xx_hal.h"
+#include "stm32f4xx_hal_conf.h"
+#include <cstdint>
 
 #define LVGL_USE_V8 1
 #if     LVGL_USE_V8
 #include "lvgl.h"
+#include "src/hal/lv_hal_disp.h"
     
-
-
-#include "stm32f4xx_hal.h"
-#include "stm32f4xx_hal_conf.h"
-#include <cstdint>
-#pragma once
 class UI
 {
     public:
     friend class DEVICE;
-    using enum   DEVICE::DEVICE_StatusType;
-    using byte = DEVICE::byte;
-    using flag = DEVICE::flag;
+    
     using init_t        = DEVICE::DEVICE_StatusType(*)();
     using flush_cb_t    = void(*)(lv_disp_drv_t * disp_drv, const lv_area_t * area, lv_color_t * color_p);
-    using buffer_t = lv_color_t;
-    using info = uint8_t;
+    
+    using buffer_t  = lv_color_t;
+    /* resolution type */
+    using res_t     = uint16_t;   
    
 
     UI() 
@@ -34,21 +31,21 @@ class UI
 
     /* REGISTER DISPLAY V8.4 */
 
-    lv_disp_drv_t       disp_drv;
-    lv_disp_draw_buf_t  buf_mono,      
+    lv_disp_drv_t       disp_drv; // lvgl display driver structure
+    lv_disp_draw_buf_t  buf_mono, // lvgl buffer structure mono/dual     
                         buf_dual;      
 
     template<size_t N>
-    DEVICE::DEVICE_StatusType Init(uint16_t      res_h,
-                                   uint16_t      res_v,
-                                   init_t        base_init,          // hardware init 
-                                   flush_cb_t    flush_cb,           // flush callback, defined by user
-                                   buffer_t      (&buf1)[N],         // avoid using dynamic memory allocation
-                                   buffer_t      *buf2 = nullptr)    // the size of buffer should be defined by user
+    DEVICE::DEVICE_StatusType LVGL_Init(res_t        res_h,
+                                        res_t        res_v,
+                                        flush_cb_t   flush_cb,           // flush callback, defined by user
+                                        buffer_t   (&buf1)[N],         // avoid using dynamic memory allocation
+                                        buffer_t    *buf2 = nullptr)    // the size of buffer should be defined by user
     {
-        if(base_init) base_init();                     // hardware init, i.e. disp_init
+        static bool isInited{false};
+        if(!isInited)lv_init(),isInited = true;
         lv_disp_drv_init(&disp_drv);
-        flag isDual = (buf2);
+        DEVICE::flag isDual = (buf2);
         lv_disp_draw_buf_t *active_buf = (isDual)?&buf_dual:&buf_mono;
         lv_disp_draw_buf_init(active_buf,buf1,buf2,N);
         /* set parameters */
@@ -61,7 +58,7 @@ class UI
         /* Register */
         lv_disp_drv_register(&disp_drv);
         
-        return DEVICE_SUCCESS;
+        return DEVICE::DEVICE_StatusType::DEVICE_SUCCESS;
     } 
 
 
@@ -77,7 +74,6 @@ class UI
         uint16_t full;
     }RGB565_T; 
 };
-
 #endif
 
 #define LVGL_USE_V9 0

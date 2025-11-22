@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 echo -e "\x1b[32m
       ::::::::::: :::     ::::    :::    
          :+:    :+:      :+:+:   :+:     
@@ -13,7 +14,7 @@ echo -e "\x1b[32m
 @2025 Project i4N
 \x1b[0m"
 
-cmake --build build/Debug --
+cmake --build build/Debug --config Debug
 echo -e "\x1b[32mBuild finished\x1b[0m"
 
 ELF=$(find build/Debug -name "*.elf" | head -n 1)

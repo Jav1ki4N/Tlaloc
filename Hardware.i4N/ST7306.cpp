@@ -1,11 +1,13 @@
 #include "ST7306.h"
+#include "DEVICE.h"
+#include "stm32f411xe.h"
 #include "stm32f4xx_hal_conf.h"
 #include "stm32f4xx_hal_gpio.h"
 #include "stm32f4xx_hal_spi.h"
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <UI.h>
-
 
 ST7306::DEVICE_StatusType ST7306::Init_Sequence()
 {
@@ -92,6 +94,18 @@ ST7306::DEVICE_StatusType ST7306::Init_Sequence()
     SPI_Send(0xBB,                 COMMAND);
     SPI_Send(0x4F,                 DATA); // Enable Clear RAM to 0
     SPI_Send(CMD::DISPLAY_ON,      COMMAND);
+
+    #define TEMP_TEST 0
+    #if     TEMP_TEST
+        HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);
+        Delay_ms(1000);
+        HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);
+        Delay_ms(200);
+        HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);
+        Delay_ms(50);
+        HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);
+    #endif
+
     Clear_FullScreen();
     return DEVICE_StatusType::DEVICE_SUCCESS;
 }
@@ -125,18 +139,7 @@ ST7306::DEVICE_StatusType ST7306::Clear_FullScreen()
     return DEVICE_StatusType::DEVICE_SUCCESS;
 }
 
-// ST7306::DEVICE_StatusType ST7306::Run_Refresh_Test()
-// {
-//     byte pattern[8] = {0b00000000,0b00100100,
-//                        0b01001000,0b01101100,
-//                        0b10010000,0b10110100,
-//                        0b11011000,0b11111100};
-//     static byte index = 0;
-//     if(index == 8)index = 0;
-//     memset(FULL_SCREEN_BUFFER,pattern[index++],sizeof(FULL_SCREEN_BUFFER));
-//     Update_FullScreen();
-//     return DEVICE_StatusType::DEVICE_SUCCESS;
-// }
+
 
 ST7306::DEVICE_StatusType ST7306::Update_FullScreen()
 {
@@ -153,14 +156,128 @@ ST7306::DEVICE_StatusType ST7306::Update_FullScreen()
     return DEVICE_StatusType::DEVICE_SUCCESS;
 }
 
-ST7306::DEVICE_StatusType ST7306::Fill_FullScreen(byte color)
+ST7306::DEVICE_StatusType ST7306::Fill_FullScreen(COLOR color,byte color_detailed)
 {
-    memset(FULL_SCREEN_BUFFER,color,sizeof(FULL_SCREEN_BUFFER));
-    Update_FullScreen();
+    byte fill = (color_detailed)?color_detailed:(static_cast<byte>(color) <<5 | static_cast<byte>(color) <<2);
+    memset(FULL_SCREEN_BUFFER,fill,sizeof(FULL_SCREEN_BUFFER));
     return DEVICE_StatusType::DEVICE_SUCCESS;
 }
 
-/* FUNCTIONS BELOW ARE ONLY FOR TESTMENT USAGES */
+/***************************************************************************************************************************/
+
+     /*$   /$$ /$$$$$$
+    | $$  | $$|_  $$_/
+    | $$  | $$  | $$  
+    | $$  | $$  | $$  
+    | $$  | $$  | $$  
+    | $$  | $$  | $$  
+    |  $$$$$$/ /$$$$$$
+    \______/  |_____*/
+                  
+#if defined (LVGL_USE_V8)
+
+ST7306::byte ST7306::Convert_ColorDepth_16to3(lv_color_t color_16)
+{
+    /* >50% -> 1, otherwise 0 */
+    byte b = (color_16.ch.blue > 15)?0b1:0b0,
+         g = (color_16.ch.green> 31)?0b1:0b0,
+         r = (color_16.ch.red  > 15)?0b1:0b0;
+    
+    /* 
+       Hardware Color Map:
+       WHITE = 0b000
+       BLACK = 0b111
+       
+       So if we have high intensity (White), we want 0.
+       If we have low intensity (Black), we want 1.
+       We need to invert the result.
+    */
+    return (~((r<<2)|(g<<1)|b)) & 0x07;
+}
+
+void ST7306::Flush_Core(lv_disp_drv_t * disp_drv, const lv_area_t * area, lv_color_t * color_p)
+{
+    if(area->x1<0 || area->y1<0 || area->x2>INFO::HEIGHT-1 || area->y2>INFO::WIDTH-1)return;
+    
+    /* 
+       Note: hardware_xs/xe/ys/ye calculation removed as we are doing full refresh.
+       If partial refresh is needed later, these calculations are valid for the window.
+    */
+
+    for(auto y = area->y1; y <= area->y2; y++)
+    {
+        for(auto x = area->x1; x <= area->x2; x++)
+        {
+            lv_color_t color_16 = *color_p++;
+            byte       color_3  = Convert_ColorDepth_16to3(color_16);
+            FULL_SCREEN_BUFFER[x/2][y/4][y%4].full &= ((x%2?2:1)==1)?0b00011111:0b11100011;
+            FULL_SCREEN_BUFFER[x/2][y/4][y%4].full |= color_3 << ((x%2?2:1)==1?5:2);
+        }
+    }
+    using enum SPI_DataType;
+    /* 
+       Fix: Always update the full screen to ensure data alignment.
+       Sending the full buffer into a partial window (hardware_xs/xe...) causes 
+       mismatch because the buffer is contiguous and we were sending from the start.
+       For partial updates, we would need to send row-by-row or pack a temp buffer.
+       For now, Full Refresh is the safest way to ensure correct display.
+    */
+    Update_FullScreen();
+}
+
+void ST7306::Flush_CallBack(lv_disp_drv_t * disp_drv, const lv_area_t * area, lv_color_t * color_p)
+{
+    if(!disp_drv->user_data)
+    {
+        lv_disp_flush_ready(disp_drv);
+        return;
+    }
+    
+    /* 
+       CRITICAL FIX: Pointer Arithmetic for Multiple Inheritance
+       disp_drv->user_data holds a 'UI*' pointer (from UI::LVGL_Init).
+       ST7306 inherits from [DEVICE, UI].
+       So 'UI*' is NOT the same address as 'ST7306*'.
+       We must cast to UI* first, then static_cast to ST7306* to let compiler adjust the offset.
+    */
+    UI* ui_ptr = static_cast<UI*>(disp_drv->user_data);
+    ST7306 *instance = static_cast<ST7306*>(ui_ptr);
+    
+    /* Debug: Toggle LED to prove LVGL is trying to draw */
+    HAL_GPIO_TogglePin(TEST_LED_PORT, TEST_LED_PIN);
+
+    instance->Flush_Core(disp_drv, area, color_p);
+    lv_disp_flush_ready(disp_drv);
+}
+
+#endif
+
+
+/**************************************************************************************************************************/                  
+
+/*$$$$$$$$                    /$$           /$$$$$$$$ /$$           /$$       /$$
+|__  $$__/                   | $$          | $$_____/|__/          | $$      | $$
+   | $$  /$$$$$$   /$$$$$$$ /$$$$$$        | $$       /$$  /$$$$$$ | $$  /$$$$$$$
+   | $$ /$$__  $$ /$$_____/|_  $$_/        | $$$$$   | $$ /$$__  $$| $$ /$$__  $$
+   | $$| $$$$$$$$|  $$$$$$   | $$          | $$__/   | $$| $$$$$$$$| $$| $$  | $$
+   | $$| $$_____/ \____  $$  | $$ /$$      | $$      | $$| $$_____/| $$| $$  | $$
+   | $$|  $$$$$$$ /$$$$$$$/  |  $$$$/      | $$      | $$|  $$$$$$$| $$|  $$$$$$$
+   |__/ \_______/|_______/    \___/        |__/      |__/ \_______/|__/ \_______/
+                                                                                 
+                                                                                                                                                                  */
+
+// ST7306::DEVICE_StatusType ST7306::Run_Refresh_Test()
+// {
+//     byte pattern[8] = {0b00000000,0b00100100,
+//                        0b01001000,0b01101100,
+//                        0b10010000,0b10110100,
+//                        0b11011000,0b11111100};
+//     static byte index = 0;
+//     if(index == 8)index = 0;
+//     memset(FULL_SCREEN_BUFFER,pattern[index++],sizeof(FULL_SCREEN_BUFFER));
+//     Update_FullScreen();
+//     return DEVICE_StatusType::DEVICE_SUCCESS;
+// }
 
 // ST7306::DEVICE_StatusType ST7306::Quick_Test(byte xs, byte xe, byte ys, byte ye, byte color)
 // {

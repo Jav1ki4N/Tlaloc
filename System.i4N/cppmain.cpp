@@ -1,6 +1,3 @@
-//
-// Created by i4N on 2025/10/13.
-//
 
 /* Header Files */
 #include "cppmain.h"
@@ -9,126 +6,65 @@
 #include "stm32f411xe.h"
 #include "stm32f4xx_hal.h"
 #include "stm32f4xx_hal_gpio.h"
+#include "stm32f4xx_hal_tim.h"
+#include "tim.h"
 #include "uart_app.h"
 #include <cstdint>
 
- uint8_t isLit{0};
- #define EXTI_PORT GPIOB
- #define EXTI_KEY1 GPIO_PIN_14
- #define EXTI_KEY2 GPIO_PIN_15
+/* Global Tick Counter for Debugging */
+volatile uint32_t lvgl_tick_count = 0;
 
 /* main function in C++ */
 void cppmain()
 {
-    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+    /* Pre-Init Stuffs */
+    HAL_TIM_Base_Start_IT(&htim3);
+
     /* *Initializations Here */
     UART_App_Init();
-    ST7306 display(&hi2c1,&hspi1,&huart1,&huart1);
+    
+    /* Static instance to prevent stack overflow */
+    static ST7306 display(&hi2c1,&hspi1,&huart1,&huart1);
+    
     display.Set_SPI_GPIO(GPIO_PIN_3, GPIO_PIN_4, GPIO_PIN_2);
-    display.Init_Sequence();
+    display.UI_Init();
+
+    /* --- LVGL UI Test Code --- */
+    lv_obj_t* scr = lv_scr_act();
+    lv_obj_set_style_bg_color(scr, lv_color_white(), 0); // Set White Background
+    lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
+
+    lv_obj_t* lbl = lv_label_create(scr);
+    lv_label_set_text(lbl, "LVGL Running...");
+    lv_obj_set_style_text_color(lbl, lv_color_black(), 0);
+    lv_obj_center(lbl);
+    /* ------------------------- */
+    
+    uint32_t last_debug_time = 0;
+
     /* Infinite Loop */
     for (;;)
     {
-        //  using enum ST7306::COLOR;
-        // for(int i = 0;i<210;i++)
-        // {
-        //     for(int j = 0;j<480;j++)
-        //     {
-        //         display.Draw_Pixel(j,i,WHITE);
-        //     }
-        // }
+        /* Always run handler, remove #if guard to be sure */
+        lv_timer_handler();
+        HAL_Delay(5);
 
-        // for(int i = 51;i<100; i++)
-        // {
-        //     for(int j = 51;j<100;j++)
-        //     {
-        //         display.Draw_Pixel(j,i,CYAN);
-        //     }
-        // }
-
-        // for(int i = 101;i<150; i++)
-        // {
-        //     for(int j = 101;j<150;j++)
-        //     {
-        //         display.Draw_Pixel(j,i,MAGENTA);
-        //     }
-        // }
-
-        // display.Update_FullScreen();
-        
-        //HAL_GPIO_WritePin(GPIOB,GPIO_PIN_14, GPIO_PIN_RESET);
-        //HAL_GPIO_WritePin(GPIOB,GPIO_PIN_15, GPIO_PIN_RESET);
-
-        /*****************************************/
-
-        // if(isLit)
-        // {
-        //     HAL_GPIO_TogglePin(GPIOB,GPIO_PIN_13);
-        //     // HAL_GPIO_WritePin(GPIOB, GPIO_PIN_13, GPIO_PIN_RESET);
-        //     HAL_Delay(1);
-        // }
-        // Simple debouncing: sample and require stable value for debounce_ms
-        static GPIO_PinState last_sample1 = GPIO_PIN_RESET;
-        static GPIO_PinState last_sample2 = GPIO_PIN_RESET;
-        static GPIO_PinState stable1 = GPIO_PIN_RESET;
-        static GPIO_PinState stable2 = GPIO_PIN_RESET;
-        static uint32_t last_time1 = 0;
-        static uint32_t last_time2 = 0;
-        const uint32_t debounce_ms = 50;
-
-        GPIO_PinState sample1 = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_15); // KEY RIGHT
-        GPIO_PinState sample2 = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14); // KEY LEFT
-        uint32_t now = HAL_GetTick();
-
-        // key1 debouncing
-        if (sample1 != last_sample1) {
-            last_sample1 = sample1;
-            last_time1 = now;
-        } else if ((now - last_time1) >= debounce_ms && sample1 != stable1) {
-            // stable state changed
-            stable1 = sample1;
-            if (stable1 == GPIO_PIN_SET) {
-                HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_12);
-            }
+        /* Heartbeat Logic */
+        if(lvgl_tick_count - last_debug_time > 1000)
+        {
+            last_debug_time = lvgl_tick_count;
+            /* Toggle LED every second to show Main Loop + ISR are alive */
+            HAL_GPIO_TogglePin(DEVICE::TEST_LED_PORT, DEVICE::TEST_LED_PIN);
         }
-
-        // key2 debouncing
-        if (sample2 != last_sample2) {
-            last_sample2 = sample2;
-            last_time2 = now;
-        } else if ((now - last_time2) >= debounce_ms && sample2 != stable2) {
-            stable2 = sample2;
-            if (stable2 == GPIO_PIN_SET) {
-                HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_13);
-            }
-        }
-
-        // small delay to avoid busy-looping (keeps sampling at reasonable rate)
-        HAL_Delay(10);
-       // HAL_GPIO_WritePin(GPIOB,GPIO_PIN_12,(s1 == GPIO_PIN_SET)?GPIO_PIN_SET:GPIO_PIN_RESET);
-        //HAL_GPIO_WritePin(GPIOB,GPIO_PIN_13,(s2 == GPIO_PIN_SET)?GPIO_PIN_SET:GPIO_PIN_RESET);
-
-        
     }
 }
 
-// void EXTI15_10_IRQHandler(void)
-// {
-//     HAL_GPIO_EXTI_IRQHandler(EXTI_KEY1);
-//     HAL_GPIO_EXTI_IRQHandler(EXTI_KEY2);
-// }
+extern "C" void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+    if(htim->Instance == TIM3)
+    {  
+        lv_tick_inc(1); // 1ms
+        lvgl_tick_count++;
+    }
+}
 
-// void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-// {
-//     HAL_Delay(10);
-//     if(GPIO_Pin == EXTI_KEY1) // Toggle LED
-//     {
-//         if(HAL_GPIO_ReadPin(EXTI_PORT, EXTI_KEY1) == GPIO_PIN_RESET){ // PRESSED
-//         HAL_GPIO_TogglePin(GPIOB,GPIO_PIN_12);}
-//     }
-//     else if (GPIO_Pin == EXTI_KEY2) // Toggle isLit
-//     {
-//         GPIO_PinState status = HAL_GPIO_ReadPin(EXTI_PORT, EXTI_KEY2);
-//         isLit = (status == GPIO_PIN_RESET)?1:0;
-//     }
-// }

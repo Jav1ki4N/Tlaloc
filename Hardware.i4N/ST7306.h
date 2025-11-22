@@ -2,39 +2,34 @@
 #include "DEVICE.h"
 #include "UI.h"
 #include "spi.h"
+#include "src/hal/lv_hal_disp.h"
 #include "usart.h"
+#include <cstdint>
 
-class ST7306 : public DEVICE//, public UI
+class ST7306 : public DEVICE, public UI
 {
     public:
-        explicit ST7306(I2C_HandleType   *hi2cx   = nullptr ,
+        explicit ST7306(I2C_HandleType   *hi2cx   = nullptr , // no I2C support
                         SPI_HandleType   *hspix   = &hspi1  ,
                         UART_HandleType  *huartx  = nullptr,
                         DEBUG_HandleType *hdebugx = &huart1)
         :DEVICE(hi2cx,hspix,huartx,hdebugx)
+        ,UI()
         {
             isDebug = false;
         }
         
-        DEVICE_StatusType Init_Sequence();
-        DEVICE_StatusType Clear_FullScreen();
-        DEVICE_StatusType Quick_Test(byte xs = INFO::XS, 
-                                     byte xe = INFO::XE, 
-                                     byte ys = INFO::YS, 
-                                     byte ye = INFO::YE,
-                                     byte color = 0xFF);
-        
-         enum class COLOR : byte
+        enum class COLOR : byte
         {
             /* RGB ORDER, 0 vaild */
-            BLACK   = 0b111,  //111
-            RED     = 0b011,    //110
-            GREEN   = 0b010,  //101
-            YELLOW  = 0b001, //100
-            BLUE    = 0b110,   //011
-            MAGENTA = 0b010,//010
-            CYAN    = 0b100,   //001
-            WHITE   = 0b000   //000
+            BLACK   = 0b111, 
+            RED     = 0b011,   
+            GREEN   = 0b010, 
+            YELLOW  = 0b001, 
+            BLUE    = 0b110,   
+            MAGENTA = 0b010,
+            CYAN    = 0b100,  
+            WHITE   = 0b000,
         };
 
         typedef union
@@ -57,12 +52,21 @@ class ST7306 : public DEVICE//, public UI
             byte full;
         }pixel_byte_t;
 
-        pixel_byte_t FULL_SCREEN_BUFFER[240][53][4];
+        pixel_byte_t FULL_SCREEN_BUFFER[240][53][4]; // for index,
+                                                     // min is [0][0][0]
+                                                     // max is [239][52][3]
+                                                     // for address, 0-239 is fine
+                                                     // while 0-52 would be 4-56
 
-        DEVICE_StatusType Draw_Pixel(uint16_t x, uint16_t y,COLOR color);
-        DEVICE_StatusType Update_FullScreen();
-        DEVICE_StatusType Run_Refresh_Test();
-        DEVICE_StatusType Fill_FullScreen(byte color);
+        /* APIs */
+        DEVICE_StatusType Init_Sequence    ();
+        DEVICE_StatusType Clear_FullScreen ();           
+        DEVICE_StatusType Update_FullScreen();          
+        DEVICE_StatusType Fill_FullScreen  (COLOR color, byte  color_detailed = 0);  
+        DEVICE_StatusType Draw_Pixel       (res_t x,     res_t y, COLOR color); 
+        
+        //DEVICE_StatusType Run_Refresh_Test();
+        
 
         // * this function draws a minimum ram unit (4*2 pixels) at (x,y)
         // * the (x,y) is not pixel coordinate, but ram unit coordinate
@@ -191,37 +195,51 @@ class ST7306 : public DEVICE//, public UI
             SPI_Send(static_cast<uint8_t>(inversion)|
                      static_cast<uint8_t>(interval) |
                      static_cast<uint8_t>(interlace),DATA);
-            //SPI_Send(0x29,                 DATA); // panel setting: configures panel parameters (polarity, inversion, interlace)
         }
 
-        typedef struct                      //**** -> RGB 1,3,5,7
-        {                                   //**** -> RGB 2,4,6,8
-            pixel_byte_t ram_unit[4];
-        }ram_unit_t;
 
-        typedef struct
+        /***************************************************************************************************************************/
+
+         /*$   /$$ /$$$$$$
+        | $$  | $$|_  $$_/
+        | $$  | $$  | $$  
+        | $$  | $$  | $$  
+        | $$  | $$  | $$  
+        | $$  | $$  | $$  
+        |  $$$$$$/ /$$$$$$
+        \______/  |_____*/
+
+        #if defined (LVGL_USE_V8)
+
+        lv_color_t BUFFER_A[INFO::WIDTH*10],
+                   BUFFER_B[INFO::WIDTH*10];
+
+        byte Convert_ColorDepth_16to3(lv_color_t color_16);
+
+        void        Flush_Core    (lv_disp_drv_t * disp_drv, const lv_area_t * area, lv_color_t * color_p);
+        static void Flush_CallBack(lv_disp_drv_t * disp_drv, const lv_area_t * area, lv_color_t * color_p);
+
+        public:
+        DEVICE_StatusType UI_Init()
         {
-            ram_unit_t row_buffer[60];      // 60 ram units in horizontal
-        }row_buffer_t;
+            Init_Sequence();                                      // Hardware Init
+            LVGL_Init(INFO::HEIGHT, INFO::WIDTH,                  // UI Init
+                      Flush_CallBack, BUFFER_A, BUFFER_B);
+                      
+            #define TEMP_TEST_2 0
+            #if     TEMP_TEST_2
+                HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);
+                Delay_ms(1000);
+                HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);
+                Delay_ms(200);
+                HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);
+                Delay_ms(50);
+                HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);
+            #endif
+            return DEVICE_StatusType::DEVICE_SUCCESS;
+        }
 
-        row_buffer_t full_buffer[239];      // 239 rams in vertical
         
-
-        /* UI */
-
-        #define LVGL_ENABLE 0
-        #if LVGL_ENABLE
-
-        /* static flush cb called by LVGL API */
-        static void LVGL_Flush_Callback (lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);
-        /* flush logic layer */
-        DEVICE_StatusType Flush_Callback(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map);
-        DEVICE_StatusType UI_Init();
-
-        LV_ATTRIBUTE_MEM_ALIGN                     // ensure proper alignment for DMA
-        buffer_t frame_buffer1[INFO::BUFFER_SIZE]; // 1 row * (239) = half screen
-        LV_ATTRIBUTE_MEM_ALIGN
-        buffer_t frame_buffer2[INFO::BUFFER_SIZE];
-
         #endif
+        
 }; 

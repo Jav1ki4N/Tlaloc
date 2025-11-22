@@ -7,6 +7,7 @@
 
 /* HAL_Libs*/
 #include "main.h"
+#include "stm32f411xe.h"
 
 class DEVICE
 {
@@ -29,6 +30,10 @@ public:
 	}
 	
 	friend class UI;
+
+    /* Public for Debugging */
+	static inline GPIO_TypeDef* const TEST_LED_PORT{GPIOC};
+	static constexpr uint16_t         TEST_LED_PIN {GPIO_PIN_13};
 
 protected:
 
@@ -61,6 +66,10 @@ protected:
 	/* Optional fixed constants, used if needed */
 	static constexpr uint16_t GENERAL_BUFFER_LENGTH{256};
 	static constexpr uint16_t GENERAL_TIMEOUT      {1000}; // in ms
+
+	// Moved to public
+	// static inline GPIO_TypeDef* const TEST_LED_PORT{GPIOC};
+	// static constexpr uint16_t         TEST_LED_PIN {GPIO_PIN_13};
 
 	enum class DEVICE_StatusType : uint8_t
 	{

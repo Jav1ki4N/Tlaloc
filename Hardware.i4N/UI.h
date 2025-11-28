@@ -21,7 +21,8 @@ class UI
     
     using buffer_t  = lv_color_t;
     /* resolution type */
-    using res_t     = uint16_t;   
+    using res_t     = uint16_t;
+    //using id_t      = DEVICE::byte;   
    
 
     UI() 
@@ -33,10 +34,23 @@ class UI
 
     lv_disp_drv_t       disp_drv; // lvgl display driver structure
     lv_disp_draw_buf_t  buf_mono, // lvgl buffer structure mono/dual     
-                        buf_dual;      
+                        buf_dual;
+                        
+   
+    
+    enum class REG_TABLE : DEVICE::byte
+    {
+        NONE,
+        ST7306_210X480
+    };
+
+
+    inline static DEVICE::flag   isOccupied{false};
+    inline static REG_TABLE curr_reg_device{REG_TABLE::NONE};
 
     template<size_t N>
-    DEVICE::DEVICE_StatusType LVGL_Init(res_t        res_h,
+    DEVICE::DEVICE_StatusType LVGL_Init(REG_TABLE    device_id,
+                                        res_t        res_h,
                                         res_t        res_v,
                                         flush_cb_t   flush_cb,           // flush callback, defined by user
                                         buffer_t   (&buf1)[N],         // avoid using dynamic memory allocation
@@ -57,6 +71,8 @@ class UI
         disp_drv.draw_buf  = active_buf;
         /* Register */
         lv_disp_drv_register(&disp_drv);
+        isOccupied = true;
+        curr_reg_device = device_id;
         
         return DEVICE::DEVICE_StatusType::DEVICE_SUCCESS;
     } 

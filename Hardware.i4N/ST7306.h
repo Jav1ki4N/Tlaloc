@@ -16,7 +16,7 @@ class ST7306 : public DEVICE, public UI
         :DEVICE(hi2cx,hspix,huartx,hdebugx)
         ,UI()
         {
-            isDebug = false;
+            isDebug = true;
         }
         
         enum class COLOR : byte
@@ -24,7 +24,7 @@ class ST7306 : public DEVICE, public UI
             /* RGB ORDER, 0 vaild */
             BLACK   = 0b111, 
             RED     = 0b011,   
-            GREEN   = 0b010, 
+            GREEN   = 0b101, 
             YELLOW  = 0b001, 
             BLUE    = 0b110,   
             MAGENTA = 0b010,
@@ -223,8 +223,12 @@ class ST7306 : public DEVICE, public UI
         DEVICE_StatusType UI_Init()
         {
             Init_Sequence();                                      // Hardware Init
-            LVGL_Init(INFO::HEIGHT, INFO::WIDTH,                  // UI Init
-                      Flush_CallBack, BUFFER_A, BUFFER_B);
+            LVGL_Init(UI::REG_TABLE::ST7306_210X480,  // Device ID
+                      INFO::HEIGHT, 
+                      INFO::WIDTH,                  // UI Init
+                      Flush_CallBack, 
+                      BUFFER_A, 
+                      BUFFER_B);
                       
             #define TEMP_TEST_2 0
             #if     TEMP_TEST_2

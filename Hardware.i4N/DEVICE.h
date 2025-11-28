@@ -8,6 +8,9 @@
 /* HAL_Libs*/
 #include "main.h"
 #include "stm32f411xe.h"
+#include "stm32f4xx_hal_gpio.h"
+#include "stm32f4xx_hal_rcc.h"
+#include "stm32f4xx_hal_spi.h"
 
 class DEVICE
 {
@@ -31,9 +34,7 @@ public:
 	
 	friend class UI;
 
-    /* Public for Debugging */
-	static inline GPIO_TypeDef* const TEST_LED_PORT{GPIOC};
-	static constexpr uint16_t         TEST_LED_PIN {GPIO_PIN_13};
+    
 
 protected:
 
@@ -191,6 +192,9 @@ protected:
 	}
 
 	char Debug_buffer[GENERAL_BUFFER_LENGTH]{0};
+
+	public:
+
 	template<typename... Args>
 	DEVICE_StatusType Debug_Print(const char* format, Args... args)
 	{
@@ -213,6 +217,8 @@ protected:
 	/* SPI */
 	/*********************************************************************************************/
 
+	protected:
+
 	uint8_t which_spi{0};
 	SPI_HandleType *HSPIX;
 
@@ -229,7 +235,7 @@ protected:
 	// Configure the GPIO pins used by the SPI peripheral for this device.
 	// 'port' defaults to GPIOA when omitted.
 	public:
-	DEVICE_StatusType Set_SPI_GPIO(pin cs,pin rst,pin dc,port port = GPIOA)
+	DEVICE_StatusType Set_SPI_GPIO(pin cs,pin dc,pin rst,port port = GPIOA)
 	{
 		SPI_GPIO.PORT	= port;
 		SPI_GPIO.PIN_CS	= cs  ;
@@ -238,35 +244,25 @@ protected:
 		return DEVICE_StatusType::DEVICE_SUCCESS;
 	}
 	protected:
-	// CS active level: indicates whether chip-select is asserted low or high.
-	// Note: ACTIVE_AT_LOW==true represents the common case where CS is active low.
+	
 	enum class SPI_Polarity:bool
 	{
 		ACTIVE_AT_LOW  = true, // Typical case
 		ACTIVE_AT_HIGH = false 
 	};
 
-	// Whether the bytes being sent are device command bytes or data bytes.
 	enum class SPI_DataType:bool
 	{
 		COMMAND = false,
 		DATA    = true
 	};
 
-	// Device SPI wiring mode. FOUR_LINE uses a separate DC pin to indicate
-	// command vs data (common for graphics displays). THREE_LINE omits DC.
 	enum class SPI_Mode:uint8_t
 	{
 		FOUR_LINE  = 4, // RST,CS,DC
 		THREE_LINE = 3  // RST,CS    
 	};
 
-	// Core SPI transmit routine. Sequence:
-	// 1) If in 4-line mode, set the DC pin: HIGH for DATA, LOW for COMMAND.
-	// 2) Assert CS according to the configured polarity (active level may be low or high).
-	// 3) Call HAL_SPI_Transmit to send the buffer.
-	// 4) Deassert CS (restore opposite level).
-	// 5) Check HAL status and return DEVICE_SUCCESS/FAILED, while emitting debug messages.
 	DEVICE_StatusType SPI_SendCore(byte   *data, 
 					   SPI_DataType type,
 					   uint16_t     length,                
@@ -280,7 +276,7 @@ protected:
 			             (type == SPI_DataType::DATA)?PINSTATE::HIGH
 					                         :PINSTATE::LOW);
 		}
-		Debug_Print("SPI%d: Sending %d bytes in %d line mode\r\n",which_spi,length,static_cast<uint8_t>(mode));
+		//Debug_Print("SPI%d: Sending %d bytes in %d line mode\r\n",which_spi,length,static_cast<uint8_t>(mode));
 
 		// Assert chip-select using the configured active polarity.
 		Set_PinState(SPI_GPIO.PORT,SPI_GPIO.PIN_CS,
@@ -294,8 +290,10 @@ protected:
 				     (polarity == SPI_Polarity::ACTIVE_AT_LOW)?PINSTATE::HIGH
 					                                          :PINSTATE::LOW);
 		
-		if (status != HAL_OK)return Debug_Print("SPI%d: SPI Transmission Failed\r\n",which_spi), DEVICE_StatusType::DEVICE_FAILED;
-		return Debug_Print("SPI%d: SPI Transmission Success\r\n",which_spi), DEVICE_StatusType::DEVICE_SUCCESS;
+		 return DEVICE_StatusType::DEVICE_SUCCESS;
+
+		//if (status != HAL_OK)return Debug_Print("SPI%d: SPI Transmission Failed\r\n",which_spi), DEVICE_StatusType::DEVICE_FAILED;
+		//return Debug_Print("SPI%d: SPI Transmission Success\r\n",which_spi), DEVICE_StatusType::DEVICE_SUCCESS;
 	}
 
 
@@ -317,6 +315,36 @@ protected:
 		return SPI_SendCore(&data,type,1,polarity,mode);
 	}
 
+	/** If DMA is enabled **/
+
+	inline static volatile bool isBusy{false};
+
+	DEVICE_StatusType SPI_SendCore_DMA(byte        *data, 
+					   				   SPI_DataType type,
+					   				   uint16_t     length,                
+				       			       SPI_Polarity polarity = SPI_Polarity::ACTIVE_AT_LOW,
+					   			       SPI_Mode     mode     = SPI_Mode::    FOUR_LINE    )
+	{
+		using enum SPI_Polarity; 
+		using enum PINSTATE; 
+		using enum SPI_DataType;
+		using enum SPI_Mode;
+		Set_PinState(SPI_GPIO.PORT,SPI_GPIO.PIN_DC,(mode == FOUR_LINE)?(type == DATA)?HIGH:LOW:LOW);
+		Set_PinState(SPI_GPIO.PORT,SPI_GPIO.PIN_CS,(polarity == ACTIVE_AT_LOW)?LOW:HIGH);
+		isBusy = true;
+		while(HAL_SPI_GetState(HSPIX)==HAL_SPI_STATE_BUSY_TX){};
+		HAL_SPI_Transmit_DMA(HSPIX,data,length);
+		return DEVICE_StatusType::DEVICE_SUCCESS;
+	}
+
+	public:
+	void SPI_On_DMAOver(SPI_Polarity polarity = SPI_Polarity::ACTIVE_AT_LOW)
+	{
+		using enum SPI_Polarity;
+		using enum PINSTATE;
+		Set_PinState(SPI_GPIO.PORT,SPI_GPIO.PIN_CS,
+				     (polarity == ACTIVE_AT_LOW)?HIGH:LOW);
+	}
 	/****************************************************************************************/
 	/* Delay */
 	DEVICE_StatusType Delay_ms(uint32_t ms)
@@ -324,7 +352,12 @@ protected:
 		HAL_Delay(ms);
 		return DEVICE_StatusType::DEVICE_SUCCESS;
 	}
+	/*****************************************************************************************/
 
+	void foo()
+	{
+		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_13,GPIO_PIN_SET);
+	}
 };
 
 /* END OF FILE */

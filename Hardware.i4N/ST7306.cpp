@@ -152,7 +152,7 @@ ST7306::DEVICE_StatusType ST7306::Update_FullScreen()
     SPI_Send(INFO::YS,       DATA); // YS
     SPI_Send(INFO::YE,       DATA); // YE
     SPI_Send(CMD::MEM_WRITE,COMMAND);
-    SPI_SendCore(reinterpret_cast<byte*>(FULL_SCREEN_BUFFER),DATA,sizeof(FULL_SCREEN_BUFFER)); 
+    SPI_SendCore_DMA(reinterpret_cast<byte*>(FULL_SCREEN_BUFFER),DATA,sizeof(FULL_SCREEN_BUFFER)); 
     return DEVICE_StatusType::DEVICE_SUCCESS;
 }
 
@@ -242,10 +242,6 @@ void ST7306::Flush_CallBack(lv_disp_drv_t * disp_drv, const lv_area_t * area, lv
     */
     UI* ui_ptr = static_cast<UI*>(disp_drv->user_data);
     ST7306 *instance = static_cast<ST7306*>(ui_ptr);
-    
-    /* Debug: Toggle LED to prove LVGL is trying to draw */
-    HAL_GPIO_TogglePin(TEST_LED_PORT, TEST_LED_PIN);
-
     instance->Flush_Core(disp_drv, area, color_p);
     lv_disp_flush_ready(disp_drv);
 }

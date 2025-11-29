@@ -25,8 +25,6 @@ endif()
 # Set the project name
 set(CMAKE_PROJECT_NAME Tlaloc)
 
-# Include toolchain file
-include("cmake/gcc-arm-none-eabi.cmake")
 
 # Enable compile command to ease indexing with e.g. clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
@@ -40,20 +38,20 @@ enable_language(C CXX ASM)
 
 # Libraries 
 file(GLOB HARDWARE
-        "${CMAKE_CURRENT_SOURCE_DIR}/Hardware.i4N/*.h"
+        #"${CMAKE_CURRENT_SOURCE_DIR}/Hardware.i4N/*.h"
         "${CMAKE_CURRENT_SOURCE_DIR}/Hardware.i4N/*.cpp"
 )
 file(GLOB SYSTEM
-        "${CMAKE_CURRENT_SOURCE_DIR}/System.i4N/*.h"
+        #"${CMAKE_CURRENT_SOURCE_DIR}/System.i4N/*.h"
         "${CMAKE_CURRENT_SOURCE_DIR}/System.i4N/*.cpp"
 )
 file(GLOB_RECURSE LVGL_SRC CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/Middleware.i4N/LVGL/*.c"        # nothing here normmally
-    "${CMAKE_CURRENT_SOURCE_DIR}/Middleware.i4N/LVGL/*.h"        # lvgl.h / lv_conf.h / lv_version.h
+    #"${CMAKE_CURRENT_SOURCE_DIR}/Middleware.i4N/LVGL/*.h"        # lvgl.h / lv_conf.h / lv_version.h
     "${CMAKE_CURRENT_SOURCE_DIR}/Middleware.i4N/LVGL/*.cpp"      # nothing here normally
 
     "${CMAKE_CURRENT_SOURCE_DIR}/Middleware.i4N/LVGL/**/*.c"     # lots of files here
-    "${CMAKE_CURRENT_SOURCE_DIR}/Middleware.i4N/LVGL/**/*.h"
+    #"${CMAKE_CURRENT_SOURCE_DIR}/Middleware.i4N/LVGL/**/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/Middleware.i4N/LVGL/**/*.cpp"
 )
 
@@ -85,7 +83,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/Hardware.i4N
         ${CMAKE_CURRENT_SOURCE_DIR}/System.i4N
         ${CMAKE_CURRENT_SOURCE_DIR}/Middleware.i4N/LVGL
-        ${CMAKE_CURRENT_SOURCE_DIR}/Middleware.i4N/LVGL/src/**
+        ${CMAKE_CURRENT_SOURCE_DIR}/Middleware.i4N/LVGL/src
 )
  
 # Add project symbols (macros)

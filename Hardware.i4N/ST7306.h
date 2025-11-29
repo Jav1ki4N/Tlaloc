@@ -57,11 +57,15 @@ class ST7306 : public DEVICE, public UI
                                                      // max is [239][52][3]
                                                      // for address, 0-239 is fine
                                                      // while 0-52 would be 4-56
+        // 4 - 4 bytes in a ram unit (offset)
+        // 53 - 53 53 ram units in a row
+        // 240 - 240 columns
 
         /* APIs */
         DEVICE_StatusType Init_Sequence    ();
         DEVICE_StatusType Clear_FullScreen ();           
-        DEVICE_StatusType Update_FullScreen();          
+        DEVICE_StatusType Update_FullScreen();
+        DEVICE_StatusType Update(byte x, byte y);          
         DEVICE_StatusType Fill_FullScreen  (COLOR color, byte  color_detailed = 0);  
         DEVICE_StatusType Draw_Pixel       (res_t x,     res_t y, COLOR color); 
         

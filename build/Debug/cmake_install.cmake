@@ -1,4 +1,4 @@
-# Install script for directory: D:/Project.i4N/STM32_Project/Tlaloc
+# Install script for directory: D:/Project.i4N/STM32/Tlaloc
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -34,18 +34,18 @@ endif()
 
 # Set path to fallback-tool for dependency-resolution.
 if(NOT DEFINED CMAKE_OBJDUMP)
-  set(CMAKE_OBJDUMP "D:/Tools.i4N/Arm-None-Eabi-Gcc/arm-gnu-toolchain-14.3.rel1-mingw-w64-x86_64-arm-none-eabi/bin/arm-none-eabi-objdump.exe")
+  set(CMAKE_OBJDUMP "D:/Dev.i4N/MSYS2/ucrt64/bin/arm-none-eabi-objdump.exe")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("D:/Project.i4N/STM32_Project/Tlaloc/build/Debug/cmake/stm32cubemx/cmake_install.cmake")
+  include("D:/Project.i4N/STM32/Tlaloc/build/Debug/cmake/stm32cubemx/cmake_install.cmake")
 endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
 if(CMAKE_INSTALL_LOCAL_ONLY)
-  file(WRITE "D:/Project.i4N/STM32_Project/Tlaloc/build/Debug/install_local_manifest.txt"
+  file(WRITE "D:/Project.i4N/STM32/Tlaloc/build/Debug/install_local_manifest.txt"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
 endif()
 if(CMAKE_INSTALL_COMPONENT)
@@ -61,6 +61,6 @@ else()
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  file(WRITE "D:/Project.i4N/STM32_Project/Tlaloc/build/Debug/${CMAKE_INSTALL_MANIFEST}"
+  file(WRITE "D:/Project.i4N/STM32/Tlaloc/build/Debug/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
 endif()

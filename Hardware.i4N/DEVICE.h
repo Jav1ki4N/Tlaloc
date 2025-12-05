@@ -332,7 +332,7 @@ protected:
 		Set_PinState(SPI_GPIO.PORT,SPI_GPIO.PIN_DC,(mode == FOUR_LINE)?(type == DATA)?HIGH:LOW:LOW);
 		Set_PinState(SPI_GPIO.PORT,SPI_GPIO.PIN_CS,(polarity == ACTIVE_AT_LOW)?LOW:HIGH);
 		isBusy = true;
-		while(HAL_SPI_GetState(HSPIX)==HAL_SPI_STATE_BUSY_TX){};
+		//while(HAL_SPI_GetState(HSPIX)==HAL_SPI_STATE_BUSY_TX){};
 		HAL_SPI_Transmit_DMA(HSPIX,data,length);
 		return DEVICE_StatusType::DEVICE_SUCCESS;
 	}

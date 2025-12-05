@@ -16,7 +16,7 @@ class ST7306 : public DEVICE, public UI
         :DEVICE(hi2cx,hspix,huartx,hdebugx)
         ,UI()
         {
-            isDebug = true;
+            isDebug = false;
         }
         
         enum class COLOR : byte

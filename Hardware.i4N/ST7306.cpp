@@ -172,40 +172,32 @@ ST7306::DEVICE_StatusType ST7306::Update(byte x, byte y)
 
 ST7306::byte ST7306::Convert_ColorDepth_16to3(lv_color_t color_16)
 {
-    /* >50% -> 1, otherwise 0 */
-    byte b = (color_16.ch.blue > 15)?0b1:0b0,
-         g = (color_16.ch.green> 31)?0b1:0b0,
-         r = (color_16.ch.red  > 15)?0b1:0b0;
+    /* >50% -> 0 */
+    byte b = (color_16.ch.blue > 15)?0b0:0b1,
+         g = (color_16.ch.green> 31)?0b0:0b1,
+         r = (color_16.ch.red  > 15)?0b0:0b1;
     
-    /* 
-       Hardware Color Map:
-       WHITE = 0b000
-       BLACK = 0b111
-       
-       So if we have high intensity (White), we want 0.
-       If we have low intensity (Black), we want 1.
-       We need to invert the result.
-    */
-    return (~((r<<2)|(g<<1)|b)) & 0x07;
+    return (((r<<2)|(g<<1)|b)) & 0x07;
 }
 
 /* Flush_Core */
 
 void ST7306::Flush_Core(lv_disp_drv_t * disp_drv, const lv_area_t * area, lv_color_t * color_p)
-{
-    if(area->x1<0 || area->y1<0 || area->x2>INFO::HEIGHT-1 || area->y2>INFO::WIDTH-1)return;
-    
+{    
     for(auto y = area->y1; y <= area->y2; y++)
     {
-        for(auto x = area->x1; x <= area->x2; x++)
+        byte col_addr    = (y>>2),byte_offset = (y&0x3);                                               
+        for(auto x = area->x1; x <= area->x2; x+=2)
         {
-            lv_color_t color_16 = *color_p++;
-            byte       color_3  = Convert_ColorDepth_16to3(color_16);
-            FULL_SCREEN_BUFFER[x/2][y/4][y%4].full &= ((x%2?2:1)==1)?0b00011111:0b11100011;
-            FULL_SCREEN_BUFFER[x/2][y/4][y%4].full |= color_3 << ((x%2?2:1)==1?5:2);
+            byte c0 = Convert_ColorDepth_16to3(*color_p++);
+            byte c1 = Convert_ColorDepth_16to3(*color_p++);
+            byte &cell = FULL_SCREEN_BUFFER[x>>1][col_addr][byte_offset].full;
+            cell = ((cell & 0x03)|(c0<<5)|(c1<<2));
+            //byte       color_3  = Convert_ColorDepth_16to3(*color_p++);
+            //FULL_SCREEN_BUFFER[x>>1][col_addr][byte_offset].full &= ((x%2?2:1)==1)?0b00011111:0b11100011;
+            //FULL_SCREEN_BUFFER[x>>1][col_addr][byte_offset].full |= color_3 << ((x%2?2:1)==1?5:2);
         }
     }
-    using enum SPI_DataType;
     Update_FullScreen();
 }
 
@@ -224,8 +216,7 @@ void ST7306::Flush_CallBack(lv_disp_drv_t * disp_drv, const lv_area_t * area, lv
        So 'UI*' is NOT the same address as 'ST7306*'.
        We must cast to UI* first, then static_cast to ST7306* to let compiler adjust the offset.
     */
-    UI* ui_ptr = static_cast<UI*>(disp_drv->user_data);
-    ST7306 *instance = static_cast<ST7306*>(ui_ptr);
+    ST7306 *instance = static_cast<ST7306*>(static_cast<UI*>(disp_drv->user_data));
     instance->Flush_Core(disp_drv, area, color_p);
     lv_disp_flush_ready(disp_drv);
 }
